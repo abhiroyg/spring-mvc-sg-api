@@ -51,3 +51,7 @@ uploadArchives {
 springBoot {
     mainClass = "com.societegenerale.Application"
 }
+
+task stage {
+    dependsOn build
+}
