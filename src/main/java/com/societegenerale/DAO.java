@@ -10,12 +10,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 public class DAO {
     private static Connection conn = null;
     private static PreparedStatement st = null;
-    
+
     static {
         String propfileName = "config.properties";
         Properties prop = new Properties();
@@ -61,13 +62,22 @@ public class DAO {
         return count;
     }
 
-    public static List<Member> getMembers(String[][] finalParts) {
-        String sql = "SELECT * FROM SGMembers WHERE ";
-        for(String[] parts : finalParts) {
-            sql += parts[0] + " LIKE '%" + parts[1] + "%' AND";
+    public static List<Member> getMembers(Map<String, String> requestParams) {
+        String sql;
+        if (requestParams.isEmpty()) {
+            sql = "SELECT * FROM SGMembers;";
+        } else {
+            sql = "SELECT * FROM SGMembers WHERE ";
+            for (String key : requestParams.keySet()) {
+                if (key.equals("status") || key.equals("race")) {
+                    sql += key + " LIKE '%" + requestParams.get(key) + "%' AND ";
+                } else {
+                    sql += key + " = " + requestParams.get(key) + " AND ";
+                }
+            }
+            sql = sql.substring(0, sql.length() - 4) + ";";
         }
-        sql = sql.substring(0, sql.length()-3) + ";";
-        
+        System.out.println(sql);
         return getMembersSQL(sql);
     }
 
@@ -76,7 +86,7 @@ public class DAO {
             st = conn.prepareStatement(sql);
             ResultSet rs = st.executeQuery();
             List<Member> members = new ArrayList<>();
-            while(rs.next()) {
+            while (rs.next()) {
                 Member member = new Member();
                 member.setId(rs.getInt(1));
                 member.setStatus(rs.getString(2));
@@ -93,15 +103,4 @@ public class DAO {
             return null;
         }
     }
-
-    public static List<Member> getMembers(String query) {
-        String sql;
-        if (query.isEmpty()) {
-            sql = "SELECT * FROM SGMembers;";
-        } else {
-            sql = "SELECT * FROM SGMembers WHERE status LIKE '%" + query.split("=")[1] + "%';";
-        }
-        return getMembersSQL(sql);
-    }
-
 }

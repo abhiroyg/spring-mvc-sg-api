@@ -1,10 +1,10 @@
 package com.societegenerale;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -30,7 +30,7 @@ public class SGController {
 
     // Times from
     // http://www.learnersdictionary.com/qa/parts-of-the-day-early-morning-late-morning-etc
-    @RequestMapping(value = "/greetings", method = RequestMethod.GET)
+    @RequestMapping(value = { "/", "/greetings" }, method = RequestMethod.GET)
     public @ResponseBody String greeting() {
         String response = "Good ";
         LocalDateTime time = LocalDateTime.now();
@@ -50,43 +50,32 @@ public class SGController {
     @RequestMapping(value = "/search", method = RequestMethod.GET, produces = {
             MediaType.APPLICATION_JSON_UTF8_VALUE })
     public @ResponseBody String search(
-            @RequestParam(required = true) String query) {
-        List<Member> members = null;
-        try {
-            query = URLDecoder.decode(query.trim(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return "{\"message\":\"Error processing your request. Please try again later.\"}";
+            @RequestParam Map<String, String> requestParams) {
+        System.out.println(requestParams);
+
+        if (requestParams.containsKey("query")) {
+            if (requestParams.size() > 1) {
+                return "{\"message\":\"Does not support multiple parameters along with 'query'.\"}";
+            }
+            requestParams.put("status", requestParams.get("query"));
+            requestParams.remove("query");
         }
 
-        if (query.isEmpty() || query.startsWith("query=")) {
-            members = DAO.getMembers(query);
-        } else {
-            String[] parts = query.split("&");
-            String[][] finalParts = new String[parts.length][2];
-            List<String> columns = new ArrayList<>();
-            columns.add("id");
-            columns.add("status");
-            columns.add("race");
-            columns.add("weight");
-            columns.add("height");
-            columns.add("is_veg");
-            List<String> badParts = new ArrayList<>();
-            for (int i = 0; i < parts.length; i++) {
-                String[] subpart = parts[i].split("=");
-                if (!columns.contains(subpart[0])) {
-                    badParts.add(subpart[0]);
-                } else {
-                    finalParts[i][0] = subpart[0];
-                    finalParts[i][1] = subpart[1];
-                }
-            }
-            if (badParts.size() > 0) {
-                return "{\"message\":\"We don't recognize the following parameters: "
-                        + badParts.toString() + ".\"}";
-            }
-            members = DAO.getMembers(finalParts);
+        List<String> columns = new ArrayList<>();
+        columns.add("id");
+        columns.add("status");
+        columns.add("race");
+        columns.add("weight");
+        columns.add("height");
+        columns.add("is_veg");
+        Set<String> keys = requestParams.keySet();
+        if (!columns.containsAll(keys)) {
+            keys.removeAll(columns);
+            return "{\"message\":\"We don't recognize the following parameters: "
+                    + keys.toString() + ".\"}";
         }
+
+        List<Member> members = DAO.getMembers(requestParams);
 
         if (members == null) {
             return "{\"message\":\"Error processing your request. Please try again later.\"}";
