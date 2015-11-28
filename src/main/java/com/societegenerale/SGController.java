@@ -49,7 +49,8 @@ public class SGController {
 
     @RequestMapping(value = "/search", method = RequestMethod.GET, produces = {
             MediaType.APPLICATION_JSON_UTF8_VALUE })
-    public @ResponseBody String search(@RequestParam(required = true) String query) {
+    public @ResponseBody String search(
+            @RequestParam(required = true) String query) {
         List<Member> members = null;
         try {
             query = URLDecoder.decode(query.trim(), "UTF-8");
@@ -90,7 +91,8 @@ public class SGController {
         if (members == null) {
             return "{\"message\":\"Error processing your request. Please try again later.\"}";
         } else {
-            return "{\"result\":\"" + members.toString() + "\"}";
+            return "{\"count\":" + members.size() + ",\"result\":\""
+                    + members.toString() + "\"}";
         }
     }
 }
